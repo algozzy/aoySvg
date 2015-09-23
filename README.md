@@ -1,10 +1,22 @@
-# aoySvg
-Script bash de sauvegarde de différentes périodes (Jour/Semaine/mois/année) de répertoires.
-Les sauvegardes utilisent l'archivage tar et la compression gzip.
-
-# Initialisation
-Avant d'utiliser le script, il f  ut initialiser le répertoire racine qui contiendra les différentes auvegardes
-avec :
-aoySvg -p <chemin du repertoire de base de la sauvegarde> -m < nom du module > -i
-
+#NAME
+	ayoSvg.sh, permet de gérer des sauvegardes unitaires/incrémentales sur différentes périodes
+ 
+#DESCRIPTION
+	-p, Définit le chemin raçine de la sauvegarde. Ce répertoire doit être existant.
+	-i, Permet d'initialiser une sauvegarde en créant un module, passé en argument, ainsi que les fichiers de configuration.
+	-f, affiche la liste des modules
+	-s, sauvegarde ponctuelle d'un module
+	-q, sauvegarde en mode automatique
+	-m, module
+	-x, edite la liste des fichiers à exclure
+	-n, edite la liste des fichiers à inclure
+	-o, edite le fichier de configuration du module
+ 
+#AUTHOR
+	written by Sébastien BOCK
+ 
+#REPORTING BUGS
+ 
+#COPYRIGHT
+	Licence MIT
 
