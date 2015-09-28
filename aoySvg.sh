@@ -1,5 +1,30 @@
 #!/bin/bash
 
+
+#===========================================================================
+# Répertoires dans $module 
+#
+# $module/.aoySvg
+# state : fichier donnant des informations sur l'état de la dernière sauvegarde
+# config : fichier de configuration générale
+# log : fihcier journal des sauvegardes
+# include : liste des fichiers/rep à inclure dans la sauvegarde
+# exclude : liste des fichiers a exclure de la sauvegarde. Prioritaire // au fichier include
+#
+# $module/day
+# sauvegarde incrémentale. 
+#
+# $module/week
+#
+#
+# $module/month
+#
+# $module/year
+#
+#===========================================================================
+
+
+
 #===========================================================================
 #fonction de présentation des options
 #===========================================================================
@@ -22,6 +47,7 @@ man(){
 	echo -e "\t-x, edite la liste des fichiers à exclure"
 	echo -e "\t-n, edite la liste des fichiers à inclure"
 	echo -e "\t-o, edite le fichier de configuration du module"
+	echo -e "\t-d, reset des datas sauvegardées et des indices corresondants"
 	echo " "
 	tput bold
 	echo "AUTHOR"
@@ -48,61 +74,74 @@ man(){
 #===========================================================================
 checkRep(){
 	ret=1
-	pathModule=$pathBase".aoySvg/"$1
-	if [ ! -d $pathBase".aoySvg" ]
+	pathModule=$pathBase$1"/.aoySvg"
+	if [ ! -d $pathBase$1 ]
 	then
 		if [ $2 = "c" ]
 		then
-			mkdir $pathBase".aoySvg"
+			mkdir $pathBase$1
+		else
+			return 0
+		fi	
+	fi
+	if [ ! -d $pathModule ]
+	then
+		if [ $2 = "c" ]
+		then
+			mkdir $pathModule
 		else
 			return 0
 		fi	
 	fi
 	
-	if [ ! -d  $pathModule"/_conf" ]
+	if [ ! -d  $pathModule"/conf" ]
 
 	then 
 		ret=0
 		if [ $2 = "c" ]
 		then
-			echo "Création du fichier de configuration "$pathModule"_conf"
+			fic_out=$pathModule"/config"
+			echo "Création du fichier de configuration "$fic_out
 			#creation fichier de configuration
-			echo "# Fichier de configuration" > $pathModule"_conf"
-			echo "# Jour de sauvegarde complète 0= Dimanche, 1= lundi ... " >> $pathModule"_conf"
-			echo "conf_dayReset=0" >> $pathModule"_conf"
-			echo " " >> $pathModule"_conf"
-			echo "# nombre de jours entre 2 sauvegardes complètes" >> $pathModule"_conf"
-			echo "conf_nbDaysBetweenFullSvg=7" >> $pathModule"_conf"
-			echo " " >> $pathModule"_conf"
-			echo "# Editeur" >> $pathModule"_conf"
-			echo "conf_editor=vim" >> $pathModule"_conf"
-			echo " " >> $pathModule"_conf"
-			echo "# force la sauvegarde qu'importe le jour " >> $pathModule"_conf"
-			echo "conf_dayNoMatter=1" >> $pathModule"_conf"
+			echo "# Fichier de configuration" > $fic_out 
+			echo " " >> $fic_out
+			echo "# activation de la sauvegarde " >> $fic_out
+			echo "conf_enable=on " >> $fic_out
+			echo " " >> $fic_out
+			echo "# Jour de sauvegarde complète 0= Dimanche, 1= lundi ... " >> $fic_out
+			echo "conf_dayReset=0" >> $fic_out
+			echo " " >> $fic_out
+			echo "# nombre de jours entre 2 sauvegardes complètes" >> $fic_out
+			echo "conf_nbDaysBetweenFullSvg=7" >> $fic_out
+			echo " " >> $fic_out
+			echo "# Editeur" >> $fic_out
+			echo "conf_editor=vim" >> $fic_out
+			echo " " >> $fic_out
+			echo "# force la sauvegarde qu'importe le jour " >> $fic_out
+			echo "conf_dayNoMatter=1" >> $fic_out
 			
-			echo " " >> $pathModule"_conf"
-			echo "# Copie de la sauvegarde complète chaque mois ? " >> $pathModule"_conf"
-			echo "conf_svgMonth=1" >> $pathModule"_conf"
+			echo " " >> $fic_out
+			echo "# Copie de la sauvegarde complète chaque mois ? " >> $fic_out
+			echo "conf_svgMonth=1" >> $fic_out
 
-			echo " " >> $pathModule"_conf"
-			echo "# Copie de la sauvegarde complète chaque année ? " >> $pathModule"_conf"
-			echo "conf_svgYear=1" >> $pathModule"_conf"
+			echo " " >> $fic_out
+			echo "# Copie de la sauvegarde complète chaque année ? " >> $fic_out
+			echo "conf_svgYear=1" >> $fic_out
 
+			fic_out=$pathModule"/include"
+			echo "Création du fichier des ajouts "$fic_out
+			echo " " > $fic_out
 
-			echo "Création du fichier des ajouts "$pathModule"_inc"
-			echo " " > $pathModule"_inc"
-
-			echo "Création du fichier des exclus "$pathModule"_exc"
-			echo " " > $pathModule"_exc"
+			fic_out=$pathModule"/exclude"
+			echo "Création du fichier des ajouts "$fic_out
+			echo "Création du fichier des exclus "$fic_out
+			echo " " > $fic_out
 
 		fi
 	fi
 
 	periode=(single day week month year)
-	pathModuleSvg=$pathBase$1
-	echo "Création du répertoire "$pathModuleSvg
-	mkdir $pathModuleSvg
-	pathModuleSvg=$pathModuleSvg/
+	pathModuleSvg=$pathBase$1/
 	for per in ${!periode[*]}
 	do
 		if [ ! -e  "$pathModuleSvg${periode[per]}" ]
@@ -125,7 +164,7 @@ checkRep(){
 	then 
 		return 1 
 	fi
-	return ret
+	return $ret
 
 }
 
@@ -133,9 +172,10 @@ checkRep(){
 # fonction affichant les modules
 #===========================================================================
 affiche_module(){
-	list=$pathBase".aoySvg/*conf"
-	#ls $list | cut -d_ -f1 | cut -d'/' -f2
-	ls $list | rev | cut -d_ -f2 | cut -d'/' -f1 | rev
+	#list=$pathBase" | rev | cut -d_ -f2 | cut -d'/' -f1 | rev"
+	#res=$(ls $list | rev | cut -d_ -f2 | cut -d'/' -f1 | rev)
+	#echo $res
+	ls $pathBase | rev | cut -d_ -f2 | cut -d'/' -f1 | rev
 }
 
 #===========================================================================
@@ -181,18 +221,25 @@ periode_done(){
 
 }
 
+
+#===========================================================================
+# fonction de sauvegarde ponctuelle
+#===========================================================================
+sauvegarde_enable(){
+	if [[ $conf_enable = "on" ]]
+	then
+		return 1
+	fi
+	return 0
+}
+
+
 #===========================================================================
 # fonction de sauvegarde ponctuelle
 #===========================================================================
 sauvegarde_uniq(){
-	if [ ! -e $pathBase".aoySvg/"$module"_conf" ]
-	then
-		echo "le fichier de configuration du module $module est introuvable dans "$pathBase".aoySvg/"$module"_conf"
-		exit 5
-	fi	
-	source $pathBase".aoySvg/"$module"_conf"
 
-	tar -zcvf $pathBase$module"/single/"$module"_"`date +%Y_%m_%d-%H_%M_%S`.tar.gz -T $pathBase".aoySvg/"$module"_inc" -X $pathBase".aoySvg/"$module"_exc"  
+	tar -zcvf $pathBase$module"/single/"$module"_"`date +%Y_%m_%d-%H_%M_%S`.tar.gz -T $pathBase$module"/.aoySvg/include" -X $pathBase$module"/.aoySvg/exclude"  
 }
 
 #===========================================================================
@@ -229,7 +276,9 @@ sauvegarde_incr(){
 	echo "Fichier destination : "$tar_dest
 	
 	tar_duration=`date +%s`
-	tar --listed-incremental=$pathBase"/.aoySvg/"$module_snapshot -zcvf $tar_dest $tar_incr -T $pathBase".aoySvg/"$module"_inc" -X $pathBase".aoySvg/"$module"_exc"  
+	tar_cmd=" --listed-incremental="$pathBase$module"/.aoySvg/snapshot_$state_indice -zcvf "$tar_dest" "$tar_incr" -T "$pathBase$module"/.aoySvg/include -X "$pathBase$module"/.aoySvg/exclude"  
+	echo $tar_cmd
+	tar $tar_cmd
 	tar_duration=$((`date +%s` - $tar_duration))
 	echo $tar_duration
 
@@ -237,7 +286,7 @@ sauvegarde_incr(){
 	new_file_svg_state  $state_date $state_indice $state_incr
 	
 	# ecriture dans le fichier log
-	new_file_svg_log $tar_duration $tar_dest
+	new_file_svg_log $tar_duration $tar_dest $tar_cmd $module
 }
 
 
@@ -248,7 +297,7 @@ sauvegarde_incr(){
 # $3 = indice incrémental. Remis à 0 à chaque nouvelle sauvegarde complète
 #===========================================================================
 new_file_svg_state(){
-	fileLog=$pathBase".aoySvg/"$module"_state"	
+	fileLog=$pathBase$module"/.aoySvg/state"	
 	echo "# Date de la dernière sauvegarde" > $fileLog 
 	echo "state_date="$1 >> $fileLog
 	echo "# indice de semaine de la dernière sauvegarde"
@@ -261,14 +310,17 @@ new_file_svg_state(){
 # fonction créant un fichier log de la sauvegarde
 # $1 = durée de la sauvegarde
 # $2 = path fichier
-# $3 = 
+# $3 = commande tar
+# $4 = module
 #===========================================================================
 new_file_svg_log(){
-	fileLog=$pathBase".aoySvg/"$module"_log"
+	fileLog=$pathBase$module"/.aoySvg/log"
 
 	ligneAdd="date="`date +%Y_%m_%d-%H_%M_%S`
+	ligneAdd=$ligneAdd";module="$4
 	ligneAdd=$ligneAdd";duration="$1
 	ligneAdd=$ligneAdd";file="$2
+	ligneAdd=$ligneAdd";cmd="$3
 	echo $ligneAdd >> $fileLog
 }
 
@@ -284,7 +336,7 @@ new_file_svg_log(){
 # fonction supprime le fichier référant pour l incrémental
 #===========================================================================
 suppr_incr(){
-	rm $pathBase".aoySvg/"$module"_incr" 
+	rm $pathBase$module"/.aoySvg/incremente" 
 
 }
 
@@ -293,7 +345,7 @@ suppr_incr(){
 #===========================================================================
 edite_inclure(){
 
-	eval "$conf_editor" $pathBase".aoySvg/"$module"_inc"
+	eval "$conf_editor" $pathBase$module"/.aoySvg/include"
 
 }
 
@@ -302,7 +354,7 @@ edite_inclure(){
 #===========================================================================
 edite_exclure(){
 
-	eval "$conf_editor"  $pathBase".aoySvg/"$module"_exc"
+	eval "$conf_editor"  $pathBase$module"/.aoySvg/exclude"
 
 }
 
@@ -310,7 +362,7 @@ edite_exclure(){
 # function d'edition de la liste a inclure dans la sauvegade
 #===========================================================================
 edite_conf(){
-	eval "$conf_editor" $pathBase".aoySvg/"$module"_conf"
+	eval "$conf_editor" $pathBase$module"/.aoySvg/config"
 
 }
 
@@ -333,13 +385,32 @@ isModule_existe(){
 	then
 		return 11
 	fi
-	if [ ! -e $2".aoySvg/"$1"_conf" ]
+	if [ ! -e $2$1"/.aoySvg/config" ]
 	then
 		return 10
 	else
 		return 100
 	fi
 }
+
+#===========================================================================
+# fonction réinitialisant les indices, le fichier snapshot et supprime les sauvegardes
+# $1 = module
+# $2 = pathBase
+#===========================================================================
+reset_svg(){
+	# supprime les sauvegardes day/month/year
+	rm  $2$1/day/*.*
+	rm  $2$1/month/*.*
+	rm  $2$1/year/*.*
+
+	# supprime le fichier snapshot
+	rm $2$1"/.aoySvg/snapshot*"
+
+	# supprime le fichier d'état
+	rm $2$1"/.aoySvg/state"
+}
+
 
 pathBase=""
 periode=""
@@ -356,7 +427,7 @@ state_incr=0
 conf_dayReset=0
 conf_nbDaysBetweenFullSvg=7
 
-while getopts "ip:fhsqm:nxo" option
+while getopts "ip:fhsqm:nxod" option
 do
 	case $option in
 		p) # path
@@ -389,6 +460,9 @@ do
 		o) # edite la conf
 			action="action_edite_conf"	
 			;;	
+		d) # supprime toutes les sauvegardes, réinitialises les indices et snapshot
+			action="action_reset_svg"
+			;;
 	esac
 done
 
@@ -406,16 +480,7 @@ case $action in
 			;;
 		
 		action_sauvegarde_uniq)
-			if [ -z $module ]
-			then
-				echo "préciser -m (module)"
-				exit 0
-			fi	
-			source $pathBase".aoySvg/"$module"_conf"
-			sauvegarde_uniq
-			;;
-
-		action_sauvegarde_automatique)
+			# test si le module existe	
 			isModule_existe $module $pathBase
 			ret=$?
 			if [[ $ret -lt 100 ]]
@@ -423,9 +488,45 @@ case $action in
 				echo "préciser -m (module existant)"
 				exit 0
 			fi	
-			source $pathBase".aoySvg/"$module"_conf"
-			source $pathBase".aoySvg/"$module"_state"	
-			sauvegarde_incr
+			source $pathBase$module"/.aoySvg/config"
+
+			# test si la sauvegarde est active
+			sauvegarde_enable
+			ret=$?
+			if [[ $ret -eq 1 ]] 
+			then
+				sauvegarde_uniq
+			else
+				echo "Sauvegarde désactivée"
+			fi
+			;;
+
+		action_sauvegarde_automatique)
+			#for module in ls $pathBase | rev | cut -d_ -f2 | cut -d'/' -f1 | rev
+			for module in $(ls $pathBase | rev | cut -d_ -f2 | cut -d'/' -f1 | rev)
+			do
+				echo "Module : "$module
+				isModule_existe $module $pathBase
+				ret=$?
+				if [[ $ret -lt 100 ]]
+				then
+					echo "préciser -m (module existant)"
+					exit 0
+				fi	
+	
+				source $pathBase$module"/.aoySvg/config"
+				source $pathBase$module"/.aoySvg/state"
+				# test si la sauvegarde est active
+				sauvegarde_enable
+				ret=$?
+				if [[ $ret -eq 1 ]] 
+				then
+					sauvegarde_incr
+				else
+					new_file_svg_log "0" " " "Sauvegarde non faite car, désactivée" $module
+					echo "Sauvegarde désactivée"
+				fi
+			done	
 			;;	
 		
 		action_man)
@@ -433,7 +534,7 @@ case $action in
 			;;	
 		
 		action_affichage_module)
-			source $pathBase".aoySvg/"$module"_conf"
+			source $pathBase$module"/.aoySvg/config"
 			affiche_module
 			;;	
 		
@@ -445,7 +546,7 @@ case $action in
 				echo "préciser -m (module existant)"
 				exit 0
 			fi	
-			source $pathBase".aoySvg/"$module"_conf"
+			source $pathBase$module"/.aoySvg/config"
 			edite_exclure
 			;;
 		action_edite_conf)
@@ -456,7 +557,7 @@ case $action in
 				echo "préciser -m (module existant)"
 				exit 0
 			fi	
-			source $pathBase".aoySvg/"$module"_conf"
+			source $pathBase$module"/.aoySvg/config"
 			edite_conf
 			;;
 
@@ -469,8 +570,18 @@ case $action in
 				echo "préciser -m (module existant)"
 				exit 0
 			fi	
-			source $pathBase".aoySvg/"$module"_conf"
+			source $pathBase$module"/.aoySvg/config"
 			edite_inclure
+			;;
+		action_reset_svg)
+			isModule_existe $module $pathBase
+			ret=$?
+			if [[ $ret -lt 100 ]]
+			then
+				echo "préciser -m (module existant)"
+				exit 0
+			fi	
+			reset_svg $module $pathBase
 			;;
 esac
 
@@ -478,3 +589,4 @@ esac
 
 #Chargement du fichier de configuration
 exit 0
+
